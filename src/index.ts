@@ -1,12 +1,10 @@
-import express from 'express';
+import { Application } from './app';
 
-const app = express();
-const port = 3000;
+const bootstrap = () => {
+  const port = 3000;
+  const app = new Application({ port });
+  app.useMiddlewares();
+  app.createServer();
+};
 
-app.get('/api', (req, res) => {
-  res.send('Hello, world!');
-});
-
-app.listen(port, () => {
-  console.log(`server started at localhost:${port}`);
-});
+bootstrap();
