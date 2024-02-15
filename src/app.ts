@@ -22,9 +22,8 @@ export class Application {
     const app = Application.instance;
     app.use('/api', router);
 
-    if (extraMiddlewares) {
-      extraMiddlewares.forEach((middleware) => app.use(middleware));
-    }
+    if (!extraMiddlewares) return;
+    extraMiddlewares.forEach((middleware) => app.use(middleware));
   }
 
   createServer() {
