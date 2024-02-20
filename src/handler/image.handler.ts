@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { checkFileExists } from '../utils/files';
+import { checkFileExists, createFile } from '../utils/files';
 import path from 'path';
+import { resizeImage } from '../utils/imageFormat';
 
 export type ImageQuery = {
   filename: string;
@@ -25,8 +26,8 @@ class ImageHandler {
     }
 
     const filePath = path.resolve(`./images/full/${filename}.jpg`);
-    const found = await checkFileExists(filePath);
-    if (!found) return res.status(400).send(`'filename' is not exist`);
+    const isExist = await checkFileExists(filePath);
+    if (!isExist) return res.status(400).send(`'filename' is not exist`);
 
     // Only validate if both width and height have value
     if (width === undefined && height === undefined) {
@@ -47,16 +48,37 @@ class ImageHandler {
         .send(`'height' should be a positive number from query parameters`);
     }
 
-    // Validate success
+    // Validate success and format number
+    req.query.width = +width;
+    req.query.height = +height;
     return next();
   }
   public async getImageThumb(req: GetImageRequest, res: Response) {
-    const { filename, width, height } = req.query;
-    if (!width && !height) {
+    try {
+      const { filename, width, height } = req.query;
       const filePath = path.resolve(`./images/full/${filename}.jpg`);
-      return res.status(200).sendFile(filePath);
+      // Return the original image if not resizing
+      if (!width && !height) {
+        return res.status(200).sendFile(filePath);
+      }
+
+      const thumbFilePath = path.resolve(
+        `./images/thumb/${filename}_${width}x${height}.jpg`,
+      );
+      // Return the exist image instead of processing it
+      const isExist = await checkFileExists(thumbFilePath);
+      if (isExist) return res.status(200).sendFile(thumbFilePath);
+
+      const resizedImage = await resizeImage(filePath, {
+        width: +width,
+        height: +height,
+      });
+
+      await createFile(thumbFilePath, resizedImage);
+      res.status(200).sendFile(thumbFilePath);
+    } catch (error) {
+      res.status(500).send(error);
     }
-    res.status(200).send('TODO');
   }
 }
 

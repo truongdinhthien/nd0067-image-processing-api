@@ -10,6 +10,7 @@ class AppRoute {
     console.warn(
       `[Warning] The ${this.constructor.name}'s initialize function hasn't implemented`,
     );
+    return this.router;
   }
 
   getInstance() {

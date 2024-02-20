@@ -1,8 +1,9 @@
-import fs from 'fs/promises';
+import fsPromises from 'fs/promises';
+import path from 'path';
 
 export const checkFileExists = async (filePath: string) => {
   try {
-    await fs.access(filePath, fs.constants.F_OK);
+    await fsPromises.access(filePath, fsPromises.constants.F_OK);
     return true;
   } catch (err) {
     const knownError = err as NodeJS.ErrnoException;
@@ -11,4 +12,12 @@ export const checkFileExists = async (filePath: string) => {
     }
     throw err;
   }
+};
+
+export const createFile = async (
+  filePath: string,
+  content: string | Buffer,
+): Promise<void> => {
+  await fsPromises.mkdir(path.dirname(filePath), { recursive: true });
+  await fsPromises.writeFile(filePath, content);
 };
