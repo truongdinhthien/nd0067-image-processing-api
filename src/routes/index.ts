@@ -1,14 +1,23 @@
+import fs from 'fs';
 import express from 'express';
-import imageHandler from '../handler/image.handler';
+import AppRoute from '../utils/appRoute';
 
-const router = express.Router();
+const loadRoutes = () => {
+  const router = express.Router();
+  const routes = fs.readdirSync(__dirname);
 
-router.route('/').get((_, res) => {
-  res.status(200).send('API route is working!');
-});
+  routes
+    .filter((r) => r.endsWith('.route.ts'))
+    .forEach((filePath: string) => {
+      {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const Route: typeof AppRoute = require(`./${filePath}`).default;
+        const route = new Route();
+        route.initialize();
+        router.use(route.getInstance());
+      }
+    });
+  return router;
+};
 
-router.route('/images').get(imageHandler.validateQuery, (_, res) => {
-  res.status(200).send('Images route is working!');
-});
-
-export default router;
+export default loadRoutes();

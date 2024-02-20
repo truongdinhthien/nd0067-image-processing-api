@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { checkFileExists } from '../utils';
+import { checkFileExists } from '../utils/files';
 import path from 'path';
 
 export type ImageQuery = {
@@ -11,7 +11,11 @@ export type ImageQuery = {
 type GetImageRequest = Request<unknown, unknown, unknown, ImageQuery>;
 
 class ImageHandler {
-  async validateQuery(req: GetImageRequest, res: Response, next: NextFunction) {
+  public async validateQuery(
+    req: GetImageRequest,
+    res: Response,
+    next: NextFunction,
+  ) {
     const { filename, width, height } = req.query;
 
     // Validate filename
@@ -43,8 +47,10 @@ class ImageHandler {
     // Validate success
     next();
   }
+
+  public async getImageThumb(req: GetImageRequest, res: Response) {
+    res.status(200).send('Images route is working!');
+  }
 }
 
-const imageHandler = new ImageHandler();
-
-export default imageHandler;
+export default ImageHandler;
