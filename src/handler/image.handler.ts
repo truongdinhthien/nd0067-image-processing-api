@@ -17,12 +17,20 @@ class ImageHandler {
     next: NextFunction,
   ) {
     const { filename, width, height } = req.query;
-
     // Validate filename
     if (!filename) {
       return res
         .status(400)
         .send(`'filename' should not empty from query parameters`);
+    }
+
+    const filePath = path.resolve(`./images/full/${filename}.jpg`);
+    const found = await checkFileExists(filePath);
+    if (!found) return res.status(400).send(`'filename' is not exist`);
+
+    // Only validate if both width and height have value
+    if (width === undefined && height === undefined) {
+      return next();
     }
 
     // Validate width
@@ -39,17 +47,16 @@ class ImageHandler {
         .send(`'height' should be a positive number from query parameters`);
     }
 
-    // Validate filename if the file is not exist
-    const filePath = path.resolve(`./images/full/${filename}.jpg`);
-    const found = await checkFileExists(filePath);
-    if (!found) return res.status(400).send(`'filename' is not exist`);
-
     // Validate success
-    next();
+    return next();
   }
-
   public async getImageThumb(req: GetImageRequest, res: Response) {
-    res.status(200).send('Images route is working!');
+    const { filename, width, height } = req.query;
+    if (!width && !height) {
+      const filePath = path.resolve(`./images/full/${filename}.jpg`);
+      return res.status(200).sendFile(filePath);
+    }
+    res.status(200).send('TODO');
   }
 }
 
