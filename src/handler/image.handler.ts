@@ -12,6 +12,14 @@ export type ImageQuery = {
 type GetImageRequest = Request<unknown, unknown, unknown, ImageQuery>;
 
 class ImageHandler {
+  static getFullImagePath = (filename: string) => {
+    return path.resolve(`./images/full/${filename}.jpg`);
+  };
+
+  static getThumbImagePath = ({ filename, width, height }: ImageQuery) => {
+    return path.resolve(`./images/thumb/${filename}_${width}x${height}.jpg`);
+  };
+
   public async validateQuery(
     req: GetImageRequest,
     res: Response,
@@ -25,9 +33,9 @@ class ImageHandler {
         .send(`'filename' should not empty from query parameters`);
     }
 
-    const filePath = path.resolve(`./images/full/${filename}.jpg`);
+    const filePath = ImageHandler.getFullImagePath(filename);
     const isExist = await checkFileExists(filePath);
-    if (!isExist) return res.status(400).send(`'filename' is not exist`);
+    if (!isExist) return res.status(404).send(`'filename' is not exist`);
 
     // Only validate if both width and height have value
     if (width === undefined && height === undefined) {
@@ -56,15 +64,13 @@ class ImageHandler {
   public async getImageThumb(req: GetImageRequest, res: Response) {
     try {
       const { filename, width, height } = req.query;
-      const filePath = path.resolve(`./images/full/${filename}.jpg`);
+      const filePath = ImageHandler.getFullImagePath(filename);
       // Return the original image if not resizing
       if (!width && !height) {
         return res.status(200).sendFile(filePath);
       }
 
-      const thumbFilePath = path.resolve(
-        `./images/thumb/${filename}_${width}x${height}.jpg`,
-      );
+      const thumbFilePath = ImageHandler.getThumbImagePath(req.query);
       // Return the exist image instead of processing it
       const isExist = await checkFileExists(thumbFilePath);
       if (isExist) return res.status(200).sendFile(thumbFilePath);
