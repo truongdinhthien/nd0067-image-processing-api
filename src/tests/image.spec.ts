@@ -1,6 +1,5 @@
 import sharp from 'sharp';
 import ImageHandler from '../handler/image.handler';
-import { checkFileExists } from '../utils/files';
 import request from './helpers/mock-request';
 
 describe('Test image endpoint responses', () => {
@@ -29,9 +28,9 @@ describe('Test image endpoint responses', () => {
     const filename = 'fjord';
     const response = await request.get(`/api/images?filename=${filename}`);
     expect(response.status).toBe(200);
-    const file = ImageHandler.getFullImagePath(filename);
-    const isExist = await checkFileExists(file);
-    expect(isExist).toBe(true);
+
+    const image = await ImageHandler.getFullImage(filename);
+    expect(image.isExist).toBe(true);
   });
 
   it('should return resized image with valid dimensions and write them in `thumb` folder', async () => {
@@ -42,15 +41,15 @@ describe('Test image endpoint responses', () => {
       `/api/images?filename=${filename}&width=${width}&height=${height}`,
     );
     expect(response.status).toBe(200);
-    const file = ImageHandler.getThumbImagePath({
+
+    const thumbnail = await ImageHandler.getThumbImage({
       filename,
       width,
       height,
     });
-    const isExist = await checkFileExists(file);
-    expect(isExist).toBe(true);
+    expect(thumbnail.isExist).toBe(true);
 
-    const metadata = await sharp(file).metadata();
+    const metadata = await sharp(thumbnail.path).metadata();
     expect(metadata.width).toEqual(width);
     expect(metadata.height).toEqual(height);
   });

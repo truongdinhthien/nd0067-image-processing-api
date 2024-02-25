@@ -13,7 +13,10 @@ class ImageRouter extends AppRoute {
   initialize() {
     this.router
       .route(ImageRouter.getImageRoutePath)
-      .get(this.handler.validateQuery, this.handler.getImageThumb);
+      .get(
+        this.handler.validateQueryRequest,
+        this.handler.createThumbnailRequest,
+      );
 
     return this.router;
   }

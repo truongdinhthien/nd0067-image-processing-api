@@ -3,85 +3,125 @@ import { checkFileExists, createFile } from '../utils/files';
 import path from 'path';
 import { resizeImage } from '../utils/imageFormat';
 
-export type ImageQuery = {
+export type ImageOptions = {
   filename: string;
   width: number;
   height: number;
 };
 
-type GetImageRequest = Request<unknown, unknown, unknown, ImageQuery>;
+export type ImageValidator = {
+  value: ImageOptions;
+  error: string | null;
+};
+
+export type ImageFileData = {
+  path: string;
+  isExist: boolean;
+};
+
+type GetImageRequest = Request<unknown, unknown, unknown, ImageOptions>;
 
 class ImageHandler {
-  static getFullImagePath = (filename: string) => {
-    return path.resolve(`./images/full/${filename}.jpg`);
+  static getFullImage = async (filename: string): Promise<ImageFileData> => {
+    const filePath = path.resolve(`./images/full/${filename}.jpg`);
+    const response: ImageFileData = {
+      path: filePath,
+      isExist: true,
+    };
+    response.isExist = await checkFileExists(filePath);
+    return response;
   };
 
-  static getThumbImagePath = ({ filename, width, height }: ImageQuery) => {
-    return path.resolve(`./images/thumb/${filename}_${width}x${height}.jpg`);
+  static getThumbImage = async ({
+    filename,
+    width,
+    height,
+  }: ImageOptions): Promise<ImageFileData> => {
+    const filePath = path.resolve(
+      `./images/thumb/${filename}_${width}x${height}.jpg`,
+    );
+    const response: ImageFileData = {
+      path: filePath,
+      isExist: true,
+    };
+    response.isExist = await checkFileExists(filePath);
+    return response;
   };
 
-  public async validateQuery(
+  static parseOptions = (options: ImageOptions): ImageOptions => {
+    return {
+      filename: options.filename,
+      width: +options.width,
+      height: +options.height,
+    };
+  };
+
+  static validateImageOptions = (options: ImageOptions): ImageValidator => {
+    const { filename, width, height } = options;
+    const response: ImageValidator = {
+      value: ImageHandler.parseOptions(options),
+      error: null,
+    };
+
+    if (!filename) {
+      response.error = `'filename' should not empty from query parameters`;
+      return response;
+    }
+
+    if (width === undefined && height === undefined) return response;
+
+    if (Number.isNaN(+width) || width < 1) {
+      response.error = `'width' should be a positive number from query parameters`;
+      return response;
+    }
+
+    if (Number.isNaN(+height) || height < 1) {
+      response.error = `'width' should be a positive number from query parameters`;
+      return response;
+    }
+
+    return response;
+  };
+
+  static processCreateThumbnail = async (
+    options: ImageOptions,
+  ): Promise<string> => {
+    const { filename, width, height } = options;
+    const fullImage = await ImageHandler.getFullImage(filename);
+    if (fullImage.isExist && !width && !height) return fullImage.path;
+
+    const thumbImage = await ImageHandler.getThumbImage(options);
+    if (thumbImage.isExist) return thumbImage.path;
+
+    const resizedImage = await resizeImage(filename, {
+      width: options.width,
+      height: options.height,
+    });
+
+    await createFile(thumbImage.path, resizedImage);
+    return thumbImage.path;
+  };
+
+  public async validateQueryRequest(
     req: GetImageRequest,
     res: Response,
     next: NextFunction,
   ) {
-    const { filename, width, height } = req.query;
-    // Validate filename
-    if (!filename) {
-      return res
-        .status(400)
-        .send(`'filename' should not empty from query parameters`);
-    }
+    const { filename } = req.query;
+    const validator = ImageHandler.validateImageOptions(req.query);
+    if (validator.error) return res.status(400).send(validator.error);
 
-    const filePath = ImageHandler.getFullImagePath(filename);
-    const isExist = await checkFileExists(filePath);
-    if (!isExist) return res.status(404).send(`'filename' is not exist`);
+    const image = await ImageHandler.getFullImage(filename);
+    if (!image.isExist) return res.status(404).send(`'filename' is not exist`);
 
-    // Only validate if both width and height have value
-    if (width === undefined && height === undefined) {
-      return next();
-    }
-
-    // Validate width
-    if (Number.isNaN(+width) || width < 1) {
-      return res
-        .status(400)
-        .send(`'width' should be a positive number from query parameters`);
-    }
-
-    // Validate height
-    if (Number.isNaN(+height) || height < 1) {
-      return res
-        .status(400)
-        .send(`'height' should be a positive number from query parameters`);
-    }
-
-    // Validate success and format number
-    req.query.width = +width;
-    req.query.height = +height;
+    req.query = validator.value;
     return next();
   }
-  public async getImageThumb(req: GetImageRequest, res: Response) {
+
+  public async createThumbnailRequest(req: GetImageRequest, res: Response) {
     try {
-      const { filename, width, height } = req.query;
-      const filePath = ImageHandler.getFullImagePath(filename);
-      // Return the original image if not resizing
-      if (!width && !height) {
-        return res.status(200).sendFile(filePath);
-      }
-
-      const thumbFilePath = ImageHandler.getThumbImagePath(req.query);
-      // Return the exist image instead of processing it
-      const isExist = await checkFileExists(thumbFilePath);
-      if (isExist) return res.status(200).sendFile(thumbFilePath);
-
-      const resizedImage = await resizeImage(filePath, {
-        width: +width,
-        height: +height,
-      });
-
-      await createFile(thumbFilePath, resizedImage);
-      res.status(200).sendFile(thumbFilePath);
+      const thumbnail = await ImageHandler.processCreateThumbnail(req.query);
+      res.status(200).sendFile(thumbnail);
     } catch (error) {
       res.status(500).send(error);
     }
