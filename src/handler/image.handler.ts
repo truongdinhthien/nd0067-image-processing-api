@@ -76,7 +76,7 @@ class ImageHandler {
     }
 
     if (Number.isNaN(+height) || height < 1) {
-      response.error = `'width' should be a positive number from query parameters`;
+      response.error = `'height' should be a positive number from query parameters`;
       return response;
     }
 
