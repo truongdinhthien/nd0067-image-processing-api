@@ -5,9 +5,9 @@ import AppRoute from '../utils/appRoute';
 const loadRoutes = () => {
   const router = express.Router();
   const routes = fs.readdirSync(__dirname);
-
+  const regexRoute = /\.(route\.ts|route\.js)$/;
   routes
-    .filter((r) => r.endsWith('.route.ts'))
+    .filter((r) => regexRoute.test(r))
     .forEach((filePath: string) => {
       {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
