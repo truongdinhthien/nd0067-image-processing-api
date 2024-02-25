@@ -93,7 +93,7 @@ class ImageHandler {
     const thumbImage = await ImageHandler.getThumbImage(options);
     if (thumbImage.isExist) return thumbImage.path;
 
-    const resizedImage = await resizeImage(filename, {
+    const resizedImage = await resizeImage(fullImage.path, {
       width: options.width,
       height: options.height,
     });
