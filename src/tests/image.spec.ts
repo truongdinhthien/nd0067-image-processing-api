@@ -1,7 +1,6 @@
 import sharp from 'sharp';
-import ImageHandler, { ImageOptions } from '../handler/image.handler';
+import ImageHandler from '../handler/image.handler';
 import request from './helpers/mock-request';
-import { checkFileExists } from '../utils/files';
 
 describe('Test image processing function', () => {
   describe('validateImageOptions', () => {
