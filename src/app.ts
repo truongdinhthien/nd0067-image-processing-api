@@ -20,6 +20,8 @@ export class Application {
 
   useMiddlewares(...extraMiddlewares: RequestHandler[]) {
     const app = Application.instance;
+
+    app.get('/', (_, res) => res.redirect(302, '/api'));
     app.use('/api', router);
 
     if (!extraMiddlewares) return;
